@@ -14,6 +14,7 @@ char* CHAINE;
 int NUM_LIGNE;
 char TABLE_MOTS_RESERVES[NB_MOTS_RESERVES][10];
 TableIdentificateurs* tableIdent;
+FILE* file;
 
 typedef enum T_UNILEX {
     motcle,
@@ -43,34 +44,34 @@ T_UNILEX unilex;
 
 /* ---------------- Analyseur Lexical ------------ */
 void erreur(int numErreur);
-void lire_car(FILE * fichier);
-void sauter_separateurs(FILE * fichier);
+void lire_car();
+void sauter_separateurs();
 char* t_unilex_to_string(T_UNILEX unilex);
-T_UNILEX reco_entier(FILE* fichier);
-T_UNILEX reco_chaine(FILE* fichier);
-T_UNILEX reco_ident_ou_mot_reserve(FILE* fichier);
+T_UNILEX reco_entier();
+T_UNILEX reco_chaine();
+T_UNILEX reco_ident_ou_mot_reserve();
 int est_un_mot_reserve();
-T_UNILEX reco_symb(FILE* fichier);
-T_UNILEX analex(FILE* fichier);
-void initialiser(FILE** fichier);
-void terminer(FILE** fichier);
-void analyseur_lexical(char* source);
+T_UNILEX reco_symb();
+T_UNILEX analex();
+void initialiser(TableIdentificateurs* tableIdent);
+void terminer();
+void analyseur_lexical(char* source, TableIdentificateurs* tableIdent);
 
 /* ---------------- Analyseur syntaxique ---------- */
-int prog(FILE* file);
-int decl_const(FILE* file);
-int decl_var(FILE* file);
-int bloc(FILE* file);
-int instruction(FILE* file);
-int affectation(FILE* file);
-int lecture(FILE* file);
-int ecriture(FILE* file);
-int ecr_exp(FILE* file);
-int expr(FILE* file);
-int suite_terme(FILE * file);
-int terme(FILE * file);
-int op_bin(FILE* file);
-void anasynt(FILE* file);
-void analyseur_syntaxique(char* source);
+int prog();
+int decl_const();
+int decl_var();
+int bloc();
+int instruction();
+int affectation();
+int lecture();
+int ecriture();
+int ecr_exp();
+int expr();
+int suite_terme();
+int terme();
+int op_bin();
+void anasynt();
+void analyseur_syntaxique(char* source, TableIdentificateurs* tableIdentificateurs);
 
 #endif

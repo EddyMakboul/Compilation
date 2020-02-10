@@ -24,8 +24,8 @@ void erreur(int numErreur){
     return exit(EXIT_FAILURE);
 }
 
-void lire_car(FILE * fichier){
-    CARLU = (char)fgetc(fichier);
+void lire_car(){
+    CARLU = (char)fgetc(file);
     if(CARLU == EOF) {
         erreur(0);
     }
@@ -33,14 +33,14 @@ void lire_car(FILE * fichier){
         NUM_LIGNE+=1;
 }
 
-void sauter_separateurs(FILE * fichier){
+void sauter_separateurs(){
     int nb = 0;
     if(CARLU=='{')
     {
         nb+=1;
         while(nb!=0)
         {
-            lire_car(fichier);
+            lire_car();
             if(CARLU=='{')
                 nb+=1;
             else if(CARLU=='}')
@@ -49,7 +49,7 @@ void sauter_separateurs(FILE * fichier){
     }
     while(CARLU==' ' || CARLU=='\t' || CARLU=='\n')
     {
-        lire_car(fichier);
+        lire_car();
     }
 }
 
@@ -124,15 +124,16 @@ char* t_unilex_to_string(T_UNILEX unilex){
     }
 }
 
-T_UNILEX reco_entier(FILE* fichier){
+T_UNILEX reco_entier(){
     char* chaine = malloc(sizeof(chaine));
-    char* max_int = malloc(sizeof(max_int));
+    char* max_int = malloc(sizeof(max_int)*15);
+    sprintf(chaine, "%c", CARLU);
     sprintf(max_int, "%d", INT_MAX);
-    chaine = strcat(chaine, &CARLU);
+    lire_car();
     while(CARLU>='0' && CARLU<='9')
     {
         chaine = strcat(chaine, &CARLU);
-        lire_car(fichier);
+        lire_car();
     }
     if(strlen(chaine) >= strlen(max_int))
         erreur(1);
@@ -141,7 +142,7 @@ T_UNILEX reco_entier(FILE* fichier){
     return ent;
 }
 
-T_UNILEX reco_chaine(FILE* fichier){
+T_UNILEX reco_chaine(){
     char* chaine = malloc(sizeof(chaine)*LONG_MAX_CHAINE+1);
     int length = 0;
     int var_bool = 0;
@@ -150,10 +151,10 @@ T_UNILEX reco_chaine(FILE* fichier){
         if(length==LONG_MAX_CHAINE-2)
             erreur(2);
         chaine[length]=CARLU;
-        lire_car(fichier);
+        lire_car();
         if(CARLU=='\'')
         {
-            lire_car(fichier);
+            lire_car();
             if(CARLU!='\'') {
                 var_bool = 1;
             }
@@ -166,14 +167,14 @@ T_UNILEX reco_chaine(FILE* fichier){
     return ch;
 }
 
-T_UNILEX reco_ident_ou_mot_reserve(FILE* fichier){
+T_UNILEX reco_ident_ou_mot_reserve(){
     int length = 0;
     char* chaine = malloc(sizeof(char)*LONG_MAX_IDENT+1);
     while((CARLU>='0'&&CARLU<='9')||(CARLU>='A'&&CARLU<='z')||CARLU=='_')
     {
         if(length<LONG_MAX_IDENT) {
             chaine[length] = CARLU;
-            lire_car(fichier);
+            lire_car();
         }
         length++;
     }
@@ -227,60 +228,60 @@ int est_un_mot_reserve(){
     else return 1;
 }
 
-T_UNILEX reco_symb(FILE* fichier){
+T_UNILEX reco_symb(){
     CHAINE = strcpy(CHAINE, &CARLU);
     switch(CARLU){
         case ';':{
-            lire_car(fichier);
+            lire_car();
             return ptvirg;
         }
         case '+':{
-            lire_car(fichier);
+            lire_car();
             return plus;
         }
         case '/':{
-            lire_car(fichier);
+            lire_car();
             return divi;
         }
         case '.':{
-            lire_car(fichier);
+            lire_car();
             return point;
         }
         case '-':{
-            lire_car(fichier);
+            lire_car();
             return moins;
         }
         case '(':{
-            lire_car(fichier);
+            lire_car();
             return parouv;
         }
         case '=':{
-            lire_car(fichier);
+            lire_car();
             return eg;
         }
         case '*':{
-            lire_car(fichier);
+            lire_car();
             return mult;
         }
         case ')':{
-            lire_car(fichier);
+            lire_car();
             return parfer;
         }
         case ',':{
-            lire_car(fichier);
+            lire_car();
             return virg;
         }
         case '<':{
-            lire_car(fichier);
+            lire_car();
             switch(CARLU){
                 case '=':{
                     CHAINE = strcat(CHAINE, &CARLU);
-                    lire_car(fichier);
+                    lire_car();
                     return infe;
                 }
                 case '>':{
                     CHAINE=strcat(CHAINE, &CARLU);
-                    lire_car(fichier);
+                    lire_car();
                     return diff;
                 }
                 default:{
@@ -289,21 +290,20 @@ T_UNILEX reco_symb(FILE* fichier){
             }
         }
         case '>':{
-            lire_car(fichier);
+            lire_car();
             if(CARLU=='='){
                 CHAINE=strcat(CHAINE, &CARLU);
-                lire_car(fichier);
+                lire_car();
                 return supe;
             } else{
                 return sup;
             }
         }
         case ':':{
-            lire_car(fichier);
+            lire_car();
             if(CARLU=='='){
-                char car = '=';
                 CHAINE = strcat(CHAINE, &CARLU);
-                lire_car(fichier);
+                lire_car();
                 return aff;
             } else{
                 return deuxpts;
@@ -315,43 +315,43 @@ T_UNILEX reco_symb(FILE* fichier){
     }
 }
 
-int prog(FILE* file){
+int prog(){
     printf("Fonction prog\n");
     if(strcmp(CHAINE, "PROGRAMME")!=0)
         return 0;
-    unilex = analex(file);
+    unilex = analex();
     if(unilex != ident)
         return 0;
-    unilex = analex(file);
+    unilex = analex();
     if(unilex!=ptvirg)
         return 0;
-    unilex=analex(file);
+    unilex=analex();
     if(strcmp(CHAINE, "CONST")==0) {
-        if (decl_const(file) == 0)
+        if (decl_const() == 0)
             return 0;
     }
     if(strcmp(CHAINE, "VAR")==0)
-        if(decl_var(file)==0)
+        if(decl_var()==0)
             return 0;
-    if(bloc(file)==0)
+    if(bloc()==0)
         return 0;
     return 1;
 }
 
-int decl_const(FILE* file){
+int decl_const(){
     printf("Fonction decl_const\n");
     if(strcmp(CHAINE, "CONST")==0){
         while(unilex!=ptvirg){
-            unilex = analex(file);
+            unilex = analex();
             if(unilex!=ident)
                 return 0;
-            unilex = analex(file);
+            unilex = analex();
             if(unilex!=eg)
                 return 0;
-            unilex=analex(file);
+            unilex=analex();
             if(unilex!=ent && unilex!=ch)
                 return 0;
-            unilex = analex(file);
+            unilex = analex();
             if(unilex!=ptvirg)
             {
                 if(unilex!=virg)
@@ -363,14 +363,14 @@ int decl_const(FILE* file){
     return 1;
 }
 
-int decl_var(FILE* file){
+int decl_var(){
     printf("Fonction decl_var\n");
     if(strcmp(CHAINE, "VAR")==0){
         while(unilex!=ptvirg){
-            unilex=analex(file);
+            unilex=analex();
             if(unilex!=ident)
                 return 0;
-            unilex = analex(file);
+            unilex = analex();
             if(unilex!=ptvirg){
                 if(unilex!=virg)
                     return 0;
@@ -381,13 +381,13 @@ int decl_var(FILE* file){
     return 1;
 }
 
-int bloc(FILE* file){
+int bloc(){
     printf("Fonction bloc\n");
     if(strcmp(CHAINE, "DEBUT")==0)
     {
-        unilex=analex(file);
+        unilex=analex();
         while(strcmp(CHAINE, "FIN")!=0) {
-            if (instruction(file) == 0)
+            if (instruction() == 0)
                 return 0;
         }
         return 1;
@@ -397,52 +397,52 @@ int bloc(FILE* file){
     }
 }
 
-int instruction(FILE* file){
+int instruction(){
     printf("Fonction instruction\n");
     if(strcmp(CHAINE, "LIRE")==0)
-        return lecture(file)==1;
+        return lecture()==1;
     else if(strcmp(CHAINE, "ECRIRE")==0)
-        return ecriture(file)==1;
+        return ecriture()==1;
     else if(unilex==ident)
-        return affectation(file)==1;
+        return affectation()==1;
     else
-        return bloc(file)==1;
+        return bloc()==1;
 }
 
-int affectation(FILE * file){
+int affectation(){
     printf("Fonction affectation\n");
     if(unilex != ident)
         return 0;
-    unilex = analex(file);
+    unilex = analex();
     if(unilex!=aff)
         return 0;
-    if(expr(file)==0)
+    if(expr()==0)
         return 0;
     if(unilex!=ptvirg)
         return 0;
-    unilex = analex(file);
+    unilex = analex();
     return 1;
 }
 
-int lecture(FILE* file){
+int lecture(){
     printf("Fonction lecture\n");
     if(strcmp(CHAINE, "LIRE")!=0)
         return 0;
-    unilex = analex(file);
+    unilex = analex();
     if(unilex!=parouv)
         return 0;
-    unilex=analex(file);
+    unilex=analex();
     if(unilex==parfer)
         return 0;
     while(unilex!=parfer)
     {
         if(unilex!=ident)
             return 0;
-        unilex = analex(file);
+        unilex = analex();
         if(unilex!=parfer){
             if(unilex!=virg)
                 return 0;
-            unilex=analex(file);
+            unilex=analex();
         }
     }
     unilex = analex(file);
@@ -453,23 +453,23 @@ int lecture(FILE* file){
 
 }
 
-int ecriture(FILE * file){
+int ecriture(){
     printf("Fonction ecriture\n");
     if(strcmp(CHAINE, "ECRIRE")!=0)
         return 0;
-    unilex = analex(file);
+    unilex = analex();
     if(unilex!=parouv)
         return 0;
-    unilex = analex(file);
+    unilex = analex();
     while(unilex!=parfer)
     {
-        if(ecr_exp(file)==0)
+        if(ecr_exp()==0)
             return 0;
         if(unilex!=parfer)
         {
             if(unilex!=virg)
                 return 0;
-            unilex = analex(file);
+            unilex = analex();
         }
     }
     unilex=analex(file);
@@ -479,52 +479,52 @@ int ecriture(FILE * file){
     return 1;
 }
 
-int ecr_exp(FILE* file){
+int ecr_exp(){
     printf("Fonction ecr_exp\n");
     if(unilex!=ch)
     {
-        if(expr(file)!=0) {
-            unilex = analex(file);
+        if(expr()!=0) {
+            unilex = analex();
             return 1;
         }
         else
             return 0;
     } else {
-        unilex=analex(file);
+        unilex=analex();
         return 1;
     }
 }
 
-int expr(FILE* file){
+int expr(){
     printf("Fonction expr\n");
-    unilex = analex(file);
+    unilex = analex();
     if(terme(file) == 0)
         return 0;
-    unilex = analex(file);
-    if(suite_terme(file)==0)
+    unilex = analex();
+    if(suite_terme()==0)
         return 0;
     return 1;
 }
 
-int suite_terme(FILE* file){
+int suite_terme(){
     printf("Fonction suite_terme\n");
     if(unilex==ptvirg||unilex==parfer) {
         return 1;
     }
-    if(op_bin(file)==0)
+    if(op_bin()==0)
         return 0;
-    if(expr(file)==0)
+    if(expr()==0)
         return 0;
     return 1;
 }
 
-int terme(FILE* file){
+int terme(){
     printf("Fonction terme\n");
     if(unilex==ent||unilex==ident) {
         return 1;
     }
     if(unilex==parouv){
-        if(expr(file)==0)
+        if(expr()==0)
             return 0;
         if(unilex!=parfer)
             return 0;
@@ -533,41 +533,42 @@ int terme(FILE* file){
     else{
         if(unilex==moins)
         {
-            return terme(file);
+            return terme();
         }
         else return 0;
     }
 }
 
-int op_bin(FILE* file){
+int op_bin(){
     printf("Fonction op_bin\n");
     return unilex==plus||unilex==moins||unilex==mult||unilex==divi;
 }
 
-T_UNILEX analex(FILE* fichier){
+T_UNILEX analex(){
     if(CARLU=='{'||CARLU==' ' || CARLU=='\t' || CARLU=='\n'){
-        sauter_separateurs(fichier);
+        sauter_separateurs();
     }
     if(CARLU>='0' && CARLU<='9')
     {
-        return reco_entier(fichier);
+        return reco_entier();
     }
     else if(CARLU=='\'')
     {
-        return reco_chaine(fichier);
+        return reco_chaine();
     }
     else if(CARLU>='A' && CARLU<='z')
     {
-        return reco_ident_ou_mot_reserve(fichier);
+        return reco_ident_ou_mot_reserve();
     }
     else{
-        return reco_symb(fichier);
+        return reco_symb();
     }
 }
 
-void initialiser(FILE** fichier){
+void initialiser(TableIdentificateurs* tableIdentificateurs){
     NUM_LIGNE = 0;
     CHAINE = malloc(sizeof(char)*LONG_MAX_CHAINE);
+    sprintf(CHAINE, "%s", ".....");
     sprintf(TABLE_MOTS_RESERVES[0], "%s", "CONST");
     sprintf(TABLE_MOTS_RESERVES[1], "%s", "DEBUT");
     sprintf(TABLE_MOTS_RESERVES[2], "%s", "ECRIRE");
@@ -575,23 +576,23 @@ void initialiser(FILE** fichier){
     sprintf(TABLE_MOTS_RESERVES[4], "%s", "LIRE");
     sprintf(TABLE_MOTS_RESERVES[5], "%s", "PROGRAMME");
     sprintf(TABLE_MOTS_RESERVES[6], "%s", "VAR");
-    *fichier = fopen(SOURCE, "r");
-    tableIdent = malloc(sizeof(TableIdentificateurs));
+    file = fopen(SOURCE, "r");
+    tableIdent = tableIdentificateurs;
     init(tableIdent);
 }
 
-void terminer(FILE** fichier){
-    fclose(*fichier);
+void terminer(){
+    fclose(file);
 }
 
-void analyseur_lexical(char* source){
+void analyseur_lexical(char* source, TableIdentificateurs* tableIdentificateurs){
     FILE* fichier = NULL;
     T_UNILEX affichage;
     SOURCE = malloc(sizeof(char)*40);
     SOURCE = strcpy(SOURCE, source);
     CHAINE = malloc(sizeof(CHAINE));
-    initialiser(&fichier);
-    lire_car(fichier);
+    initialiser(tableIdentificateurs);
+    lire_car();
     while(strcmp(CHAINE, "FIN")!=0){
         affichage = analex(fichier);
         if(affichage==ent)
@@ -604,26 +605,26 @@ void analyseur_lexical(char* source){
     {
         printf("%s %s\n", tableIdent->tableIdentificateurs[j].nomIdent, tableIdent->tableIdentificateurs[j].type);
     }
-    terminer(&fichier);
+    terminer();
 }
 
-void anasynt(FILE* file){
-    lire_car(file);
-    analex(file);
-    if(prog(file)!=0)
+void anasynt(){
+    lire_car();
+    analex();
+    if(prog()!=0)
         printf("Le programme source est syntaxiquement correct\n");
     else{
         erreur(3);
     }
 }
 
-void analyseur_syntaxique(char* source){
+void analyseur_syntaxique(char* source, TableIdentificateurs* tableIdentificateurs){
     FILE* fichier = NULL;
     SOURCE = malloc(sizeof(char)*40);
     SOURCE = strcpy(SOURCE, source);
     CHAINE = malloc(sizeof(CHAINE));
-    initialiser(&fichier);
+    initialiser(tableIdentificateurs);
     sprintf(CHAINE, "%s", "");
-    anasynt(fichier);
-    terminer(&fichier);
+    anasynt();
+    terminer();
 }

@@ -4,7 +4,7 @@ VAR nb, var2, var3;
 DEBUT
     ECRIRE('Entrez un nombre entier:');
     LIRE(nb, nb);
-    nb:=55;
+    nb:=5685;
     ECRIRE('test d''ecriture');
     LIRE(nb);
 FIN
