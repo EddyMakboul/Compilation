@@ -1,8 +1,0 @@
-PROGRAMME exemple;
-VAR nb;
-DEBUT
-    ECRIRE('Entrez un nombre entier:');
-    LIRE(nb);
-    nb:=nb*nb;
-    ECRIRE();
-FIN
