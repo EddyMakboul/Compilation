@@ -20,6 +20,18 @@ void erreur(int numErreur){
         case 3:
             printf("Erreur syntaxique.\n");
             break;
+        case 4:
+            printf("Identifiant deja existant.\n");
+            break;
+        case 5:
+            printf("Erreur identifiant non declaree ligne :%d\n", NUM_LIGNE);
+            break;
+        case 6:
+            printf("Erreur identificant n'est pas une variable ligne :%d\n", NUM_LIGNE);
+            break;
+        case 7:
+            printf("Erreur semantique ligne : %d\n", NUM_LIGNE);
+            break;
     }
     return exit(EXIT_FAILURE);
 }
@@ -47,6 +59,8 @@ void sauter_separateurs(){
                 nb-=1;
         }
     }
+    if(CARLU=='}')
+        lire_car();
     while(CARLU==' ' || CARLU=='\t' || CARLU=='\n')
     {
         lire_car();
@@ -196,23 +210,6 @@ T_UNILEX reco_ident_ou_mot_reserve(){
     if(est_un_mot_reserve())
         return motcle;
     else {
-        Identificateurs i;
-        i.nomIdent = malloc(sizeof(char*)*strlen(CHAINE));
-        i.type = malloc(sizeof(char*)*strlen(otherChaine));
-        setNameIdent(CHAINE, i);
-        setTypeIdent(otherChaine, i);
-        if(contains(tableIdent, i)==-1) {
-            if(strcmp(getTypeIdent(i), ",")==0) {
-                if (strcmp(getTypeIdent(tableIdent->tableIdentificateurs[tableIdent->actualLength - 1]), "VAR") == 0) {
-                    setTypeIdent("VAR", i);
-                }
-                else if(strcmp(getTypeIdent(tableIdent->tableIdentificateurs[tableIdent->actualLength-1]), "CONST") == 0)
-                {
-                    setTypeIdent("CONST", i);
-                }
-            }
-            addIdentificateurs(tableIdent, i);
-        }
         return ident;
     }
 }
@@ -345,12 +342,32 @@ int decl_const(){
             unilex = analex();
             if(unilex!=ident)
                 return 0;
+            if(contains(tableIdent, CHAINE)!=-1)
+                erreur(4);
+
+            Identificateurs i;
+            i.nomIdent = malloc(sizeof(char*)*strlen(CHAINE));
+            i.type = malloc(sizeof(char*)*strlen("CONST"));
+            setNameIdent(CHAINE, i);
+            setTypeIdent("CONST", i);
             unilex = analex();
             if(unilex!=eg)
                 return 0;
             unilex=analex();
             if(unilex!=ent && unilex!=ch)
                 return 0;
+            if(unilex==ent)
+            {
+                i.typc = 0;
+                i.valent = NOMBRE;
+            }
+            else if(unilex==ch){
+                i.typc = 1;
+                i.valch = malloc(sizeof(char)*strlen(CHAINE)+1);
+                i.valch = strcpy(i.valch, CHAINE);
+                addConstChaine(CHAINE);
+            }
+            addIdentificateurs(tableIdent, i);
             unilex = analex();
             if(unilex!=ptvirg)
             {
@@ -370,6 +387,16 @@ int decl_var(){
             unilex=analex();
             if(unilex!=ident)
                 return 0;
+            if(contains(tableIdent, CHAINE)!=-1)
+                erreur(4);
+            Identificateurs i;
+            i.nomIdent = malloc(sizeof(char*)*strlen(CHAINE));
+            i.type = malloc(sizeof(char*)*strlen("VAR"));
+            setNameIdent(CHAINE, i);
+            setTypeIdent("VAR", i);
+            i.typc = 0;
+            i.valent = DERNIERE_ADRESSE_VAR_GLOB++;
+            addIdentificateurs(tableIdent, i);
             unilex = analex();
             if(unilex!=ptvirg){
                 if(unilex!=virg)
@@ -385,6 +412,7 @@ int bloc(){
     printf("Fonction bloc\n");
     if(strcmp(CHAINE, "DEBUT")==0)
     {
+        printf("%s\n", CHAINE);
         unilex=analex();
         while(strcmp(CHAINE, "FIN")!=0) {
             if (instruction() == 0)
@@ -413,9 +441,15 @@ int affectation(){
     printf("Fonction affectation\n");
     if(unilex != ident)
         return 0;
+    if(contains(tableIdent, CHAINE)==-1)
+        erreur(5);
+    if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "VAR")!=0)
+        erreur(6);
     unilex = analex();
     if(unilex!=aff)
         return 0;
+    boolVar = 0;
+    cstStr = 0;
     if(expr()==0)
         return 0;
     if(unilex!=ptvirg)
@@ -438,6 +472,10 @@ int lecture(){
     {
         if(unilex!=ident)
             return 0;
+        if(contains(tableIdent, CHAINE)==-1)
+            erreur(5);
+        if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "VAR")!=0)
+            erreur(6);
         unilex = analex();
         if(unilex!=parfer){
             if(unilex!=virg)
@@ -521,6 +559,21 @@ int suite_terme(){
 int terme(){
     printf("Fonction terme\n");
     if(unilex==ent||unilex==ident) {
+        if(cstStr==1)
+            erreur(7);
+        if(unilex==ident)
+        {
+            if(contains(tableIdent, CHAINE)==-1)
+                erreur(5);
+            if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "CONST")==0) {
+                if (tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].typc == 1) {
+                    if(boolVar==1)
+                        erreur(7);
+                    cstStr = 1;
+                }
+            }
+        }
+        boolVar = 1;
         return 1;
     }
     if(unilex==parouv){
@@ -533,6 +586,7 @@ int terme(){
     else{
         if(unilex==moins)
         {
+            unilex = analex(file);
             return terme();
         }
         else return 0;
@@ -545,7 +599,7 @@ int op_bin(){
 }
 
 T_UNILEX analex(){
-    if(CARLU=='{'||CARLU==' ' || CARLU=='\t' || CARLU=='\n'){
+    while(CARLU=='{'||CARLU==' ' || CARLU=='\t' || CARLU=='\n'){
         sauter_separateurs();
     }
     if(CARLU>='0' && CARLU<='9')
@@ -566,7 +620,10 @@ T_UNILEX analex(){
 }
 
 void initialiser(TableIdentificateurs* tableIdentificateurs){
-    NUM_LIGNE = 0;
+    NUM_LIGNE = 1;
+    NB_CONST_CHAINE = 0;
+    DERNIERE_ADRESSE_VAR_GLOB = 0;
+    VAL_DE_CONST_CHAINE = malloc(sizeof(char*));
     CHAINE = malloc(sizeof(char)*LONG_MAX_CHAINE);
     sprintf(CHAINE, "%s", ".....");
     sprintf(TABLE_MOTS_RESERVES[0], "%s", "CONST");
@@ -600,11 +657,6 @@ void analyseur_lexical(char* source, TableIdentificateurs* tableIdentificateurs)
         else
             printf("%s %s\n", CHAINE, t_unilex_to_string(affichage));
     }
-    printf("%s\n", "------------");
-    for(int j=0; j<tableIdent->actualLength; j++)
-    {
-        printf("%s %s\n", tableIdent->tableIdentificateurs[j].nomIdent, tableIdent->tableIdentificateurs[j].type);
-    }
     terminer();
 }
 
@@ -626,5 +678,17 @@ void analyseur_syntaxique(char* source, TableIdentificateurs* tableIdentificateu
     initialiser(tableIdentificateurs);
     sprintf(CHAINE, "%s", "");
     anasynt();
+    printf("Nb de const chaine : %d\n", NB_CONST_CHAINE);
+    for(int i=0; i<NB_CONST_CHAINE;i++)
+    {
+        printf("%s\n", VAL_DE_CONST_CHAINE[i]);
+    }
     terminer();
+}
+
+void addConstChaine(char* chaine){
+    VAL_DE_CONST_CHAINE = realloc(VAL_DE_CONST_CHAINE, sizeof(char*)*(NB_CONST_CHAINE+1));
+    VAL_DE_CONST_CHAINE[NB_CONST_CHAINE] = malloc(sizeof(char)*strlen(chaine)+1);
+    VAL_DE_CONST_CHAINE[NB_CONST_CHAINE] = strcpy(VAL_DE_CONST_CHAINE[NB_CONST_CHAINE], chaine);
+    NB_CONST_CHAINE++;
 }

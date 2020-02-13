@@ -11,6 +11,6 @@ typedef struct{
 void init(TableIdentificateurs* tableIdent);
 void reallouer(TableIdentificateurs* tableIdent);
 void addIdentificateurs(TableIdentificateurs* tableIdent, Identificateurs ident);
-int contains(TableIdentificateurs* tableIdent, Identificateurs ident);
+int contains(TableIdentificateurs* tableIdent, char* ident);
 
 #endif //COMPILATIONPROJECT_TABLEIDENTIFICATEURS_H

@@ -25,10 +25,10 @@ void addIdentificateurs(TableIdentificateurs* tableIdent, Identificateurs i){
     tableIdent->actualLength++;
 }
 
-int contains(TableIdentificateurs* tableIdent, Identificateurs i){
+int contains(TableIdentificateurs* tableIdent, char* i){
     for(int index=0; index<tableIdent->actualLength; index++)
     {
-        if(strcmp(tableIdent->tableIdentificateurs[index].nomIdent,i.nomIdent)==0)
+        if(strcmp(tableIdent->tableIdentificateurs[index].nomIdent,i)==0)
             return index;
     }
 

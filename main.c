@@ -1,5 +1,6 @@
 #include "Analyseur.h"
 #include <stdlib.h>
+#include <string.h>
 
 int main(int argc, char* argv[]) {
     TableIdentificateurs* tableIdent;
@@ -10,7 +11,11 @@ int main(int argc, char* argv[]) {
     printf("------------\n");
     for(int j=0; j<tableIdent->actualLength; j++)
     {
-        printf("%s %s\n", tableIdent->tableIdentificateurs[j].nomIdent, tableIdent->tableIdentificateurs[j].type);
+        printf("%s %s ", tableIdent->tableIdentificateurs[j].nomIdent, tableIdent->tableIdentificateurs[j].type);
+        if(strcmp(tableIdent->tableIdentificateurs[j].type, "CONST")==0 && tableIdent->tableIdentificateurs[j].typc==1)
+            printf("%s\n", tableIdent->tableIdentificateurs[j].valch);
+        else
+            printf("%d\n", tableIdent->tableIdentificateurs[j].valent);
     }
     return 0;
 }

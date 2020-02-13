@@ -15,6 +15,11 @@ int NUM_LIGNE;
 char TABLE_MOTS_RESERVES[NB_MOTS_RESERVES][10];
 TableIdentificateurs* tableIdent;
 FILE* file;
+int NB_CONST_CHAINE;
+char** VAL_DE_CONST_CHAINE;
+int DERNIERE_ADRESSE_VAR_GLOB;
+int boolVar;
+int cstStr;
 
 typedef enum T_UNILEX {
     motcle,
@@ -73,5 +78,8 @@ int terme();
 int op_bin();
 void anasynt();
 void analyseur_syntaxique(char* source, TableIdentificateurs* tableIdentificateurs);
+
+/* ----------------- Analyseur sémantique --------- */
+void addConstChaine(char* chaine);
 
 #endif
