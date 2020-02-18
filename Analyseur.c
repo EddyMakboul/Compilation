@@ -454,6 +454,8 @@ int affectation(){
         return 0;
     if(unilex!=ptvirg)
         return 0;
+    boolVar = 0;
+    cstStr = 0;
     unilex = analex();
     return 1;
 }
