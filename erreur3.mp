@@ -4,5 +4,5 @@ var variable1;
 debut
 
 
-    variable1:=5*variable;
+    variable1:=cst1;
 fin

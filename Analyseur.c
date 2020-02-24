@@ -27,10 +27,13 @@ void erreur(int numErreur){
             printf("Erreur identifiant non declaree ligne :%d\n", NUM_LIGNE);
             break;
         case 6:
-            printf("Erreur identificant n'est pas une variable ligne :%d\n", NUM_LIGNE);
+            printf("Erreur identifiant n'est pas une variable ligne :%d\n", NUM_LIGNE);
             break;
         case 7:
             printf("Erreur semantique ligne : %d\n", NUM_LIGNE);
+            break;
+        case 8:
+            printf("Identifiant de type ch : %d\n", NUM_LIGNE);
             break;
     }
     return exit(EXIT_FAILURE);
@@ -199,7 +202,7 @@ T_UNILEX reco_ident_ou_mot_reserve(){
     }
     char* otherChaine;
     if(strlen(CHAINE)!=0) {
-        otherChaine = malloc(sizeof(char *) * strlen(CHAINE));
+        otherChaine = malloc(sizeof(char) * strlen(CHAINE));
         otherChaine = strcpy(otherChaine, CHAINE);
     } else{
         otherChaine = malloc(sizeof(char)*10);
@@ -319,6 +322,12 @@ int prog(){
     unilex = analex();
     if(unilex != ident)
         return 0;
+    Identificateurs i;
+    i.nomIdent = malloc(sizeof(char*)*strlen(CHAINE));
+    i.type = malloc(sizeof(char*)*strlen("PROGRAMME"));
+    setNameIdent(CHAINE, i);
+    setTypeIdent("PROGRAMME", i);
+    addIdentificateurs(tableIdent, i);
     unilex = analex();
     if(unilex!=ptvirg)
         return 0;
@@ -412,7 +421,6 @@ int bloc(){
     printf("Fonction bloc\n");
     if(strcmp(CHAINE, "DEBUT")==0)
     {
-        printf("%s\n", CHAINE);
         unilex=analex();
         while(strcmp(CHAINE, "FIN")!=0) {
             if (instruction() == 0)
@@ -431,14 +439,16 @@ int instruction(){
         return lecture()==1;
     else if(strcmp(CHAINE, "ECRIRE")==0)
         return ecriture()==1;
-    else if(unilex==ident)
-        return affectation()==1;
+    else if(unilex==ident) {
+        return affectation() == 1;
+    }
     else
         return bloc()==1;
 }
 
 int affectation(){
     printf("Fonction affectation\n");
+    varBool = 1;
     if(unilex != ident)
         return 0;
     if(contains(tableIdent, CHAINE)==-1)
@@ -448,15 +458,14 @@ int affectation(){
     unilex = analex();
     if(unilex!=aff)
         return 0;
-    boolVar = 0;
-    cstStr = 0;
+    unilex = analex();
     if(expr()==0)
         return 0;
     if(unilex!=ptvirg)
         return 0;
-    boolVar = 0;
-    cstStr = 0;
     unilex = analex();
+    varBool = 0;
+    strBool = 0;
     return 1;
 }
 
@@ -483,6 +492,8 @@ int lecture(){
             if(unilex!=virg)
                 return 0;
             unilex=analex();
+            if(unilex==parfer)
+                return 0;
         }
     }
     unilex = analex(file);
@@ -510,12 +521,16 @@ int ecriture(){
             if(unilex!=virg)
                 return 0;
             unilex = analex();
+            if(unilex==parfer)
+                return 0;
         }
     }
     unilex=analex(file);
     if(unilex!=ptvirg)
         return 0;
     unilex=analex(file);
+    varBool = 0;
+    strBool = 0;
     return 1;
 }
 
@@ -524,7 +539,7 @@ int ecr_exp(){
     if(unilex!=ch)
     {
         if(expr()!=0) {
-            unilex = analex();
+            //unilex = analex();
             return 1;
         }
         else
@@ -537,10 +552,8 @@ int ecr_exp(){
 
 int expr(){
     printf("Fonction expr\n");
-    unilex = analex();
-    if(terme(file) == 0)
+    if(terme() == 0)
         return 0;
-    unilex = analex();
     if(suite_terme()==0)
         return 0;
     return 1;
@@ -548,11 +561,12 @@ int expr(){
 
 int suite_terme(){
     printf("Fonction suite_terme\n");
-    if(unilex==ptvirg||unilex==parfer) {
+    if(unilex==ptvirg||unilex==parfer||unilex==virg) {
         return 1;
     }
     if(op_bin()==0)
         return 0;
+    unilex=analex();
     if(expr()==0)
         return 0;
     return 1;
@@ -561,34 +575,36 @@ int suite_terme(){
 int terme(){
     printf("Fonction terme\n");
     if(unilex==ent||unilex==ident) {
-        if(cstStr==1)
-            erreur(7);
         if(unilex==ident)
         {
             if(contains(tableIdent, CHAINE)==-1)
                 erreur(5);
             if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "CONST")==0) {
                 if (tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].typc == 1) {
-                    if(boolVar==1)
-                        erreur(7);
-                    cstStr = 1;
+                    if(varBool == 1 || strBool == 1)
+                        erreur(8);
+                    else
+                        strBool = 1;
                 }
             }
+            varBool = 1;
         }
-        boolVar = 1;
+        unilex = analex();
         return 1;
     }
     if(unilex==parouv){
+        unilex = analex();
         if(expr()==0)
             return 0;
         if(unilex!=parfer)
             return 0;
+        unilex=analex();
         return 1;
     }
     else{
         if(unilex==moins)
         {
-            unilex = analex(file);
+            unilex = analex();
             return terme();
         }
         else return 0;

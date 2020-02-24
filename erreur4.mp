@@ -5,5 +5,5 @@ debut
 
 
 
-    lecture(variable);
+    lecture(cst1);
 fin

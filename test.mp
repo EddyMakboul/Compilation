@@ -5,7 +5,7 @@ DEBUT
     { Test de commentaire }
     ECRIRE('Entrez un nombre entier:');
     LIRE(nb, var2);
-    nb:=(1*testConst);
-    ECRIRE('test d''ecriture');
+    nb:=(testConst);
+    ECRIRE('test d''ecriture', 5*5, otherConst);
     LIRE(nb);
 FIN

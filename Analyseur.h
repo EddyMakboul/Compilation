@@ -18,8 +18,9 @@ FILE* file;
 int NB_CONST_CHAINE;
 char** VAL_DE_CONST_CHAINE;
 int DERNIERE_ADRESSE_VAR_GLOB;
-int boolVar;
-int cstStr;
+int varBool;
+int strBool;
+int verif;
 
 typedef enum T_UNILEX {
     motcle,
