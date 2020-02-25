@@ -4,8 +4,14 @@ VAR nb, var2, var3;
 DEBUT
     { Test de commentaire }
     ECRIRE('Entrez un nombre entier:');
-    LIRE(nb, var2);
-    nb:=(testConst);
-    ECRIRE('test d''ecriture', 5*5, otherConst);
+    ECRIRE();
     LIRE(nb);
+    ECRIRE('Vous avez ecrit : ', nb);
+    ECRIRE();
+    nb:=(testConst);
+    ECRIRE(nb);
+    ECRIRE();
+    ECRIRE(5*5);
+    ECRIRE();
+    ECRIRE(otherConst, 'je teste la validite du compilateur', 5*5);
 FIN

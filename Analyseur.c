@@ -35,6 +35,9 @@ void erreur(int numErreur){
         case 8:
             printf("Identifiant de type ch : %d\n", NUM_LIGNE);
             break;
+        case 9:
+            printf("Erreur d'execution : division par zero.\n");
+            break;
         default:
             break;
     }
@@ -318,7 +321,7 @@ T_UNILEX reco_symb(){
 }
 
 int prog(){
-    printf("Fonction prog\n");
+    //printf("Fonction prog\n");
     if(strcmp(CHAINE, "PROGRAMME")!=0)
         return 0;
     unilex = analex();
@@ -343,11 +346,12 @@ int prog(){
             return 0;
     if(bloc()==0)
         return 0;
+    addPCode("STOP");
     return 1;
 }
 
 int decl_const(){
-    printf("Fonction decl_const\n");
+    //printf("Fonction decl_const\n");
     if(strcmp(CHAINE, "CONST")==0){
         while(unilex!=ptvirg){
             unilex = analex();
@@ -392,7 +396,7 @@ int decl_const(){
 }
 
 int decl_var(){
-    printf("Fonction decl_var\n");
+    //printf("Fonction decl_var\n");
     if(strcmp(CHAINE, "VAR")==0){
         while(unilex!=ptvirg){
             unilex=analex();
@@ -420,7 +424,7 @@ int decl_var(){
 }
 
 int bloc(){
-    printf("Fonction bloc\n");
+    //printf("Fonction bloc\n");
     if(strcmp(CHAINE, "DEBUT")==0)
     {
         unilex=analex();
@@ -436,7 +440,7 @@ int bloc(){
 }
 
 int instruction(){
-    printf("Fonction instruction\n");
+    //printf("Fonction instruction\n");
     if(strcmp(CHAINE, "LIRE")==0)
         return lecture()==1;
     else if(strcmp(CHAINE, "ECRIRE")==0)
@@ -449,7 +453,7 @@ int instruction(){
 }
 
 int affectation(){
-    printf("Fonction affectation\n");
+    //printf("Fonction affectation\n");
     varBool = 1;
     if(unilex != ident)
         return 0;
@@ -475,7 +479,7 @@ int affectation(){
 }
 
 int lecture(){
-    printf("Fonction lecture\n");
+    //printf("Fonction lecture\n");
     if(strcmp(CHAINE, "LIRE")!=0)
         return 0;
     unilex = analex();
@@ -514,7 +518,7 @@ int lecture(){
 }
 
 int ecriture(){
-    printf("Fonction ecriture\n");
+    //printf("Fonction ecriture\n");
     if(strcmp(CHAINE, "ECRIRE")!=0)
         return 0;
     unilex = analex();
@@ -546,11 +550,13 @@ int ecriture(){
 }
 
 int ecr_exp(){
-    printf("Fonction ecr_exp\n");
+    //printf("Fonction ecr_exp\n");
     if(unilex!=ch)
     {
         if(expr()!=0) {
-            addPCode("ECRE");
+            if(verifExpr == 1)
+                addPCode("ECRE");
+            verifExpr = 0;
             return 1;
         }
         else
@@ -565,7 +571,7 @@ int ecr_exp(){
 }
 
 int expr(){
-    printf("Fonction expr\n");
+    //printf("Fonction expr\n");
     if(terme() == 0)
         return 0;
     if(suite_terme()==0)
@@ -580,7 +586,7 @@ int expr(){
 }
 
 int suite_terme(){
-    printf("Fonction suite_terme\n");
+    //printf("Fonction suite_terme\n");
     if(unilex==ptvirg||unilex==parfer||unilex==virg) {
         return 1;
     }
@@ -593,12 +599,13 @@ int suite_terme(){
 }
 
 int terme(){
-    printf("Fonction terme\n");
+    //printf("Fonction terme\n");
     if(unilex==ent||unilex==ident) {
         if(unilex==ent)
         {
             addPCode("EMPI");
             addPCodeInt(NOMBRE);
+            verifExpr = 1;
         }
         if(unilex==ident)
         {
@@ -612,9 +619,26 @@ int terme(){
                         strBool = 1;
                 }
             }
-            addPCode("EMPI");
-            addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
-            addPCode("CONT");
+            if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "CONST")==0)
+            {
+                if(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].typc==1) {
+                    addPCode("ECRC");
+                    addPCode(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valch);
+                    addPCode("FINC");
+                    verifExpr = 0;
+                } else
+                {
+                    addPCode("EMPI");
+                    addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+                    verifExpr = 1;
+                }
+            }
+            else {
+                addPCode("EMPI");
+                addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+                addPCode("CONT");
+                verifExpr = 1;
+            }
             varBool = 1;
         }
         unilex = analex();
@@ -642,12 +666,12 @@ int terme(){
 }
 
 int op_bin(){
-    printf("Fonction op_bin\n");
+    //printf("Fonction op_bin\n");
     if(unilex==plus) {
         addPilop("ADDI");
     }
     else if(unilex==moins) {
-        addPilop("MOIN");
+        addPilop("SOUS");
     }
     else if(unilex==mult) {
         addPilop("MULT");
@@ -683,6 +707,8 @@ void initialiser(TableIdentificateurs* tableIdentificateurs){
     NUM_LIGNE = 1;
     NB_CONST_CHAINE = 0;
     DERNIERE_ADRESSE_VAR_GLOB = 0;
+    SOM_PILEX=-1;
+    tailleMaxPilex = 0;
     CO = 0;
     VAL_DE_CONST_CHAINE = malloc(sizeof(char*));
     CHAINE = malloc(sizeof(char)*LONG_MAX_CHAINE);
@@ -706,7 +732,7 @@ void terminer(){
 void analyseur_lexical(char* source, TableIdentificateurs* tableIdentificateurs){
     FILE* fichier = NULL;
     T_UNILEX affichage;
-    SOURCE = malloc(sizeof(char)*40);
+    SOURCE = malloc(sizeof(char)*strlen(source));
     SOURCE = strcpy(SOURCE, source);
     CHAINE = malloc(sizeof(CHAINE));
     initialiser(tableIdentificateurs);
@@ -726,13 +752,6 @@ void anasynt(){
     analex();
     if(prog()!=0) {
         printf("Le programme source est syntaxiquement correct\n");
-        for(int i=0; i<CO; i++)
-        {
-            if(strcmp(P_CODE[i], "EMPI")==0)
-                printf("%s ", P_CODE[i]);
-            else
-                printf("%s\n", P_CODE[i]);
-        }
     }
     else{
         erreur(3);
@@ -753,6 +772,8 @@ void analyseur_syntaxique(char* source, TableIdentificateurs* tableIdentificateu
         printf("%s\n", VAL_DE_CONST_CHAINE[i]);
     }*/
     terminer();
+    creer_fichier_code();
+    interpreter();
 }
 
 void addConstChaine(char* chaine){
@@ -783,4 +804,104 @@ void addPCodeInt(int nb){
     P_CODE[CO] = malloc(sizeof(char)*(strlen(string)+1));
     P_CODE[CO] = strcpy(P_CODE[CO], string);
     CO++;
+}
+
+void creer_fichier_code(){
+    FILE* fileMachine = NULL;
+    char* source = malloc(sizeof(source)*(strlen(SOURCE)-3));
+    char* name = malloc(sizeof(char)*(strlen(SOURCE)+2));
+    for(int i=0; i<strlen(SOURCE)-3;i++)
+        source[i] = SOURCE[i];
+    sprintf(name, "%s%s", "test", ".COD");
+    fileMachine = fopen(name, "w");
+    int testBool = 0;
+    for(int i=0; i<CO; i++)
+    {
+        if(strcmp(P_CODE[i], "EMPI")==0)
+            fprintf(fileMachine, "%s ", P_CODE[i]);
+        else if(strcmp(P_CODE[i], "ECRC")==0)
+        {
+            fprintf(fileMachine, "%s ", P_CODE[i]);
+            testBool = 1;
+        }else if(strcmp(P_CODE[i], "FINC") == 0)
+        {
+            testBool = 0;
+            fprintf(fileMachine, "%s\n", P_CODE[i]);
+        }else if(testBool == 1)
+            fprintf(fileMachine, "%s ", P_CODE[i]);
+        else
+            fprintf(fileMachine, "%s\n", P_CODE[i]);
+    }
+}
+
+void interpreter(){
+    MEMVAR = malloc(sizeof(MEMVAR)*DERNIERE_ADRESSE_VAR_GLOB+1);
+    CO=0;
+    while(strcmp(P_CODE[CO], "STOP")!=0)
+    {
+        if(strcmp(P_CODE[CO], "ADDI")==0){
+            PILEX[SOM_PILEX-1] = PILEX[SOM_PILEX-1]+PILEX[SOM_PILEX];
+            SOM_PILEX--;
+            CO++;
+        }
+        else if(strcmp(P_CODE[CO], "SOUS")==0){
+            PILEX[SOM_PILEX-1] = PILEX[SOM_PILEX-1]-PILEX[SOM_PILEX];
+            SOM_PILEX--;
+            CO++;
+        }
+        else if(strcmp(P_CODE[CO], "MULT")==0) {
+            PILEX[SOM_PILEX-1] = PILEX[SOM_PILEX-1]*PILEX[SOM_PILEX];
+            SOM_PILEX--;
+            CO++;
+        }
+        else if(strcmp(P_CODE[CO], "DIVI")==0){
+            if(PILEX[SOM_PILEX]==0)
+                erreur(9);
+            PILEX[SOM_PILEX-1] = PILEX[SOM_PILEX-1]/PILEX[SOM_PILEX];
+            SOM_PILEX--;
+            CO++;
+        }
+        else if(strcmp(P_CODE[CO], "MOIN")==0){
+            PILEX[SOM_PILEX] = -PILEX[SOM_PILEX];
+            CO++;
+        }
+        else if(strcmp(P_CODE[CO], "AFFE")==0){
+            MEMVAR[PILEX[SOM_PILEX-1]] = PILEX[SOM_PILEX];
+            SOM_PILEX-=2;
+            CO++;
+        }
+        else if(strcmp(P_CODE[CO], "LIRE")==0){
+            scanf("%d", MEMVAR+PILEX[SOM_PILEX]);
+            SOM_PILEX--;
+            CO++;
+        }
+        else if(strcmp(P_CODE[CO], "ECRL") == 0){
+            printf("\n");
+            CO++;
+        }
+        else if(strcmp(P_CODE[CO], "ECRE")==0){
+            printf("%d", PILEX[SOM_PILEX]);
+            SOM_PILEX--;
+            CO++;
+        }
+        else if(strcmp(P_CODE[CO], "ECRC")==0){
+            for(int i=0; i<strlen(P_CODE[CO+1]);i++)
+                if(P_CODE[CO+1][i]!='\'')
+                    printf("%c", P_CODE[CO+1][i]);
+            CO+=3;
+        }
+        else if(strcmp(P_CODE[CO], "EMPI")==0){
+            SOM_PILEX++;
+            if(SOM_PILEX>=tailleMaxPilex) {
+                PILEX = realloc(PILEX, sizeof(int) * ++tailleMaxPilex);
+            }
+            PILEX[SOM_PILEX] = (int)strtol(P_CODE[CO+1], NULL, 10);
+            CO+=2;
+        }
+        else if(strcmp(P_CODE[CO], "CONT")==0){
+            PILEX[SOM_PILEX] = MEMVAR[PILEX[SOM_PILEX]];
+            CO++;
+        }
+    }
+    printf("\n");
 }

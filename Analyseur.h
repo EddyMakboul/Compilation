@@ -20,11 +20,13 @@ char** VAL_DE_CONST_CHAINE;
 int DERNIERE_ADRESSE_VAR_GLOB;
 int varBool;
 int strBool;
+int verifExpr;
 
-char** MEMVAR;
+int* MEMVAR;
 char** P_CODE;
 int CO;
 int* PILEX;
+int tailleMaxPilex;
 int SOM_PILEX;
 char** PILOP;
 int SOM_PILOP;
@@ -94,5 +96,8 @@ void addConstChaine(char* chaine);
 void addPCode(char* chaine);
 void addPCodeInt(int nb);
 void addPilop(char* chaine);
+void creer_fichier_code();
+
+void interpreter();
 
 #endif
