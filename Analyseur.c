@@ -35,6 +35,8 @@ void erreur(int numErreur){
         case 8:
             printf("Identifiant de type ch : %d\n", NUM_LIGNE);
             break;
+        default:
+            break;
     }
     return exit(EXIT_FAILURE);
 }
@@ -70,8 +72,8 @@ void sauter_separateurs(){
     }
 }
 
-char* t_unilex_to_string(T_UNILEX unilex){
-    switch(unilex){
+char* t_unilex_to_string(T_UNILEX uni){
+    switch(uni){
         case 0:{
             return "motcle";
         }
@@ -202,7 +204,7 @@ T_UNILEX reco_ident_ou_mot_reserve(){
     }
     char* otherChaine;
     if(strlen(CHAINE)!=0) {
-        otherChaine = malloc(sizeof(char) * strlen(CHAINE));
+        otherChaine = malloc(sizeof(char) * (strlen(CHAINE)+1));
         otherChaine = strcpy(otherChaine, CHAINE);
     } else{
         otherChaine = malloc(sizeof(char)*10);
@@ -455,6 +457,8 @@ int affectation(){
         erreur(5);
     if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "VAR")!=0)
         erreur(6);
+    addPCode("EMPI");
+    addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
     unilex = analex();
     if(unilex!=aff)
         return 0;
@@ -463,6 +467,7 @@ int affectation(){
         return 0;
     if(unilex!=ptvirg)
         return 0;
+    addPCode("AFFE");
     unilex = analex();
     varBool = 0;
     strBool = 0;
@@ -487,6 +492,10 @@ int lecture(){
             erreur(5);
         if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "VAR")!=0)
             erreur(6);
+        addPCode("EMPI");
+        int length = 0;
+        addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+        addPCode("LIRE");
         unilex = analex();
         if(unilex!=parfer){
             if(unilex!=virg)
@@ -512,6 +521,8 @@ int ecriture(){
     if(unilex!=parouv)
         return 0;
     unilex = analex();
+    if(unilex==parfer)
+        addPCode("ECRL");
     while(unilex!=parfer)
     {
         if(ecr_exp()==0)
@@ -539,12 +550,15 @@ int ecr_exp(){
     if(unilex!=ch)
     {
         if(expr()!=0) {
-            //unilex = analex();
+            addPCode("ECRE");
             return 1;
         }
         else
             return 0;
     } else {
+        addPCode("ECRC");
+        addPCode(CHAINE);
+        addPCode("FINC");
         unilex=analex();
         return 1;
     }
@@ -556,6 +570,12 @@ int expr(){
         return 0;
     if(suite_terme()==0)
         return 0;
+    if(SOM_PILOP!=0) {
+        addPCode(PILOP[SOM_PILOP-1]);
+        free(PILOP[SOM_PILOP-1]);
+        PILOP = realloc(PILOP, sizeof(char*)*(SOM_PILOP-1));
+        SOM_PILOP--;
+    }
     return 1;
 }
 
@@ -575,6 +595,11 @@ int suite_terme(){
 int terme(){
     printf("Fonction terme\n");
     if(unilex==ent||unilex==ident) {
+        if(unilex==ent)
+        {
+            addPCode("EMPI");
+            addPCodeInt(NOMBRE);
+        }
         if(unilex==ident)
         {
             if(contains(tableIdent, CHAINE)==-1)
@@ -587,6 +612,9 @@ int terme(){
                         strBool = 1;
                 }
             }
+            addPCode("EMPI");
+            addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+            addPCode("CONT");
             varBool = 1;
         }
         unilex = analex();
@@ -605,7 +633,9 @@ int terme(){
         if(unilex==moins)
         {
             unilex = analex();
-            return terme();
+            int value = terme();
+            addPCode("MOIN");
+            return value;
         }
         else return 0;
     }
@@ -613,6 +643,18 @@ int terme(){
 
 int op_bin(){
     printf("Fonction op_bin\n");
+    if(unilex==plus) {
+        addPilop("ADDI");
+    }
+    else if(unilex==moins) {
+        addPilop("MOIN");
+    }
+    else if(unilex==mult) {
+        addPilop("MULT");
+    }
+    else {
+        addPilop("DIVI");
+    }
     return unilex==plus||unilex==moins||unilex==mult||unilex==divi;
 }
 
@@ -641,6 +683,7 @@ void initialiser(TableIdentificateurs* tableIdentificateurs){
     NUM_LIGNE = 1;
     NB_CONST_CHAINE = 0;
     DERNIERE_ADRESSE_VAR_GLOB = 0;
+    CO = 0;
     VAL_DE_CONST_CHAINE = malloc(sizeof(char*));
     CHAINE = malloc(sizeof(char)*LONG_MAX_CHAINE);
     sprintf(CHAINE, "%s", ".....");
@@ -681,8 +724,16 @@ void analyseur_lexical(char* source, TableIdentificateurs* tableIdentificateurs)
 void anasynt(){
     lire_car();
     analex();
-    if(prog()!=0)
+    if(prog()!=0) {
         printf("Le programme source est syntaxiquement correct\n");
+        for(int i=0; i<CO; i++)
+        {
+            if(strcmp(P_CODE[i], "EMPI")==0)
+                printf("%s ", P_CODE[i]);
+            else
+                printf("%s\n", P_CODE[i]);
+        }
+    }
     else{
         erreur(3);
     }
@@ -696,11 +747,11 @@ void analyseur_syntaxique(char* source, TableIdentificateurs* tableIdentificateu
     initialiser(tableIdentificateurs);
     sprintf(CHAINE, "%s", "");
     anasynt();
-    printf("Nb de const chaine : %d\n", NB_CONST_CHAINE);
+    /*printf("Nb de const chaine : %d\n", NB_CONST_CHAINE);
     for(int i=0; i<NB_CONST_CHAINE;i++)
     {
         printf("%s\n", VAL_DE_CONST_CHAINE[i]);
-    }
+    }*/
     terminer();
 }
 
@@ -709,4 +760,27 @@ void addConstChaine(char* chaine){
     VAL_DE_CONST_CHAINE[NB_CONST_CHAINE] = malloc(sizeof(char)*strlen(chaine)+1);
     VAL_DE_CONST_CHAINE[NB_CONST_CHAINE] = strcpy(VAL_DE_CONST_CHAINE[NB_CONST_CHAINE], chaine);
     NB_CONST_CHAINE++;
+}
+
+void addPCode(char* chaine){
+    P_CODE = realloc(P_CODE, sizeof(char*)*(CO+1));
+    P_CODE[CO] = malloc(sizeof(char)*(strlen(chaine)+1));
+    P_CODE[CO] = strcpy(P_CODE[CO], chaine);
+    CO++;
+}
+
+void addPilop(char* chaine){
+    PILOP = realloc(PILOP, sizeof(char*)*(SOM_PILOP+1));
+    PILOP[SOM_PILOP] = malloc(sizeof(char)*(strlen(chaine)+1));
+    sprintf(PILOP[SOM_PILOP], "%s", chaine);
+    SOM_PILOP++;
+}
+
+void addPCodeInt(int nb){
+    char* string = malloc(sizeof(nb));
+    sprintf(string, "%d", nb);
+    P_CODE = realloc(P_CODE, sizeof(char*)*(CO+1));
+    P_CODE[CO] = malloc(sizeof(char)*(strlen(string)+1));
+    P_CODE[CO] = strcpy(P_CODE[CO], string);
+    CO++;
 }

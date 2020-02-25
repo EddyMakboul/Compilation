@@ -20,7 +20,14 @@ char** VAL_DE_CONST_CHAINE;
 int DERNIERE_ADRESSE_VAR_GLOB;
 int varBool;
 int strBool;
-int verif;
+
+char** MEMVAR;
+char** P_CODE;
+int CO;
+int* PILEX;
+int SOM_PILEX;
+char** PILOP;
+int SOM_PILOP;
 
 typedef enum T_UNILEX {
     motcle,
@@ -82,5 +89,10 @@ void analyseur_syntaxique(char* source, TableIdentificateurs* tableIdentificateu
 
 /* ----------------- Analyseur sémantique --------- */
 void addConstChaine(char* chaine);
+
+/* ----------------- Génération de code ----------- */
+void addPCode(char* chaine);
+void addPCodeInt(int nb);
+void addPilop(char* chaine);
 
 #endif

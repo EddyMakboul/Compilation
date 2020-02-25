@@ -9,13 +9,13 @@ int main(int argc, char* argv[]) {
     printf("------------\n");
     analyseur_syntaxique(argv[1], tableIdent);
     printf("------------\n");
-    for(int j=0; j<tableIdent->actualLength; j++)
+    /*for(int j=0; j<tableIdent->actualLength; j++)
     {
         printf("%s %s ", tableIdent->tableIdentificateurs[j].nomIdent, tableIdent->tableIdentificateurs[j].type);
         if(strcmp(tableIdent->tableIdentificateurs[j].type, "CONST")==0 && tableIdent->tableIdentificateurs[j].typc==1)
             printf("%s\n", tableIdent->tableIdentificateurs[j].valch);
         else
             printf("%d\n", tableIdent->tableIdentificateurs[j].valent);
-    }
+    }*/
     return 0;
 }
