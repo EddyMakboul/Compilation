@@ -554,6 +554,13 @@ int ecr_exp(){
     if(unilex!=ch)
     {
         if(expr()!=0) {
+            if(SOM_PILOP!=0)
+            {
+                addPCode(PILOP[SOM_PILOP-1]);
+                free(PILOP[SOM_PILOP-1]);
+                PILOP = realloc(PILOP, sizeof(char *) * (SOM_PILOP-1));
+                SOM_PILOP--;
+            }
             if(verifExpr == 1)
                 addPCode("ECRE");
             verifExpr = 0;
@@ -576,11 +583,13 @@ int expr(){
         return 0;
     if(suite_terme()==0)
         return 0;
-    if(SOM_PILOP!=0) {
-        addPCode(PILOP[SOM_PILOP-1]);
-        free(PILOP[SOM_PILOP-1]);
-        PILOP = realloc(PILOP, sizeof(char*)*(SOM_PILOP-1));
-        SOM_PILOP--;
+    if((unilex==ptvirg||unilex==virg) && SOM_PILOP!=0) {
+        for(int i=SOM_PILOP-1; i>=0; i--) {
+            addPCode(PILOP[i]);
+            free(PILOP[i]);
+            PILOP = realloc(PILOP, sizeof(char *) * (i));
+            SOM_PILOP--;
+        }
     }
     return 1;
 }
@@ -645,12 +654,25 @@ int terme(){
         return 1;
     }
     if(unilex==parouv){
+        nbPar++;
+        tabPar = realloc(tabPar, sizeof(int) * nbPar);
+        tabPar[nbPar-1]=0;
         unilex = analex();
         if(expr()==0)
             return 0;
         if(unilex!=parfer)
             return 0;
         unilex=analex();
+        for(int i=0; i<tabPar[nbPar-1]; i++)
+        {
+            printf("test\n");
+            addPCode(PILOP[SOM_PILOP-1]);
+            free(PILOP[SOM_PILOP-1]);
+            PILOP = realloc(PILOP, sizeof(char*)*(SOM_PILOP-1));
+            SOM_PILOP--;
+        }
+        nbPar--;
+        tabPar = realloc(tabPar, sizeof(int)*nbPar);
         return 1;
     }
     else{
@@ -679,6 +701,8 @@ int op_bin(){
     else {
         addPilop("DIVI");
     }
+    if(nbPar>=1)
+        tabPar[nbPar-1]+=1;
     return unilex==plus||unilex==moins||unilex==mult||unilex==divi;
 }
 
@@ -705,6 +729,7 @@ T_UNILEX analex(){
 
 void initialiser(TableIdentificateurs* tableIdentificateurs){
     NUM_LIGNE = 1;
+    nbPar=0;
     NB_CONST_CHAINE = 0;
     DERNIERE_ADRESSE_VAR_GLOB = 0;
     SOM_PILEX=-1;

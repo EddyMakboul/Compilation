@@ -21,6 +21,8 @@ int DERNIERE_ADRESSE_VAR_GLOB;
 int varBool;
 int strBool;
 int verifExpr;
+int nbPar;
+int* tabPar;
 
 int* MEMVAR;
 char** P_CODE;
