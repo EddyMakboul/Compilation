@@ -808,11 +808,8 @@ void addPCodeInt(int nb){
 
 void creer_fichier_code(){
     FILE* fileMachine = NULL;
-    char* source = malloc(sizeof(source)*(strlen(SOURCE)-3));
     char* name = malloc(sizeof(char)*(strlen(SOURCE)+2));
-    for(int i=0; i<strlen(SOURCE)-3;i++)
-        source[i] = SOURCE[i];
-    sprintf(name, "%s%s", "test", ".COD");
+    sprintf(name, "%.*s%s", (int)strlen(SOURCE)-3, SOURCE, ".COD");
     fileMachine = fopen(name, "w");
     int testBool = 0;
     for(int i=0; i<CO; i++)
