@@ -14,6 +14,21 @@ DEBUT
         ecrire(i, j);
         ecrire();
         i:=i-1;
+        si i-1 alors
+        debut
+        fin
+        sinon
+        debut
+            j:=9;
+            tantque j faire
+            debut
+                ecrire(i-1, j);
+                ecrire();
+                j := j-1;
+            fin
+            ecrire(i-1, j);
+            ecrire();
+        fin
     fin
     ecrire(i, j);
     ecrire();

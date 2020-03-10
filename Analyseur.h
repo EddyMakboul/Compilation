@@ -94,7 +94,7 @@ int suite_terme();
 int terme();
 int op_bin();
 void anasynt();
-void analyseur_syntaxique(char* source);
+void analyseur_syntaxique(char* source, TableIdentificateurs* tableIdentificateurs);
 
 /* ----------------- Analyseur sémantique --------- */
 void addConstChaine(char* chaine);

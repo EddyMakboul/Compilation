@@ -18,10 +18,10 @@ void erreur(int numErreur){
             printf("Cette chaine depasse le nombre de caractere autorises\n");
             break;
         case 3:
-            printf("Erreur syntaxique.\n");
+            printf("Erreur syntaxique ligne :%d.\n", NUM_LIGNE);
             break;
         case 4:
-            printf("Identifiant deja existant.\n");
+            printf("Identifiant deja existant ligne :%d.\n", NUM_LIGNE);
             break;
         case 5:
             printf("Erreur identifiant non declaree ligne :%d\n", NUM_LIGNE);
@@ -855,12 +855,12 @@ void anasynt(){
     }
 }
 
-void analyseur_syntaxique(char* source){
+void analyseur_syntaxique(char* source, TableIdentificateurs* tableIdentificateurs){
     FILE* fichier = NULL;
     SOURCE = malloc(sizeof(char)*40);
     SOURCE = strcpy(SOURCE, source);
     CHAINE = malloc(sizeof(CHAINE));
-    initialiser(tableIdent);
+    initialiser(tableIdentificateurs);
     sprintf(CHAINE, "%s", "");
     anasynt();
     /*printf("Nb de const chaine : %d\n", NB_CONST_CHAINE);
