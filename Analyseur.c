@@ -432,6 +432,7 @@ int bloc(){
             if (instruction() == 0)
                 return 0;
         }
+        unilex = analex();
         return 1;
     }
     else{
@@ -441,16 +442,81 @@ int bloc(){
 
 int instruction(){
     //printf("Fonction instruction\n");
+    if(strcmp(CHAINE, "SI")==0)
+        return inst_cond();
+    else return inst_non_cond();
+}
+
+int inst_non_cond(){
     if(strcmp(CHAINE, "LIRE")==0)
         return lecture()==1;
-    else if(strcmp(CHAINE, "ECRIRE")==0)
+    if(strcmp(CHAINE, "ECRIRE")==0)
         return ecriture()==1;
-    else if(unilex==ident) {
-        return affectation() == 1;
-    }
-    else
+    if(strcmp(CHAINE, "DEBUT") == 0)
         return bloc()==1;
+    if(unilex==ident)
+        return affectation()==1;
+    if(strcmp(CHAINE, "TANTQUE")==0)
+        return inst_repe()==1;
+    return 0;
 }
+
+int inst_repe(){
+    if(strcmp(CHAINE, "TANTQUE")!=0)
+        return 0;
+    unilex = analex();
+    addTabMemMove(CO);
+    if(expr()==0)
+        return 0;
+    addPCode("ALSN");
+    addPCode("");
+    addTabMemMove(CO-1);
+    if(strcmp(CHAINE, "FAIRE")!=0)
+        return 0;
+    unilex = analex();
+    if(instruction()!=1)
+        return 0;
+    int num = removeTabMemMove();
+    int num2 = removeTabMemMove();
+    P_CODE[num] = malloc(sizeof(CO));
+    sprintf(P_CODE[num], "%d", CO+2);
+    addPCode("ALLE");
+    addPCodeInt(num2);
+    return 1;
+}
+
+int inst_cond(){
+    if(strcmp(CHAINE, "SI")!=0)
+        return 0;
+    unilex = analex();
+    if(expr()==0)
+        return 0;
+    addPCode("ALSN");
+    addPCode("");
+    addTabMemMove(CO-1);
+    if(strcmp(CHAINE, "ALORS")!=0)
+        return 0;
+    unilex = analex();
+    if(instruction()==0)
+        return 0;
+    int num = removeTabMemMove();
+    P_CODE[num] = malloc(sizeof(CO));
+    sprintf(P_CODE[num], "%d", CO+2);
+    if(strcmp(CHAINE, "SINON")==0) {
+        addPCode("ALLE");
+        addPCode("");
+        addTabMemMove(CO-1);
+        unilex = analex();
+        if(instruction()==0)
+            return 0;
+        num = removeTabMemMove();
+        P_CODE[num] = malloc(sizeof(CO));
+        sprintf(P_CODE[num], "%d", CO);
+    }
+
+    return 1;
+}
+
 
 int affectation(){
     //printf("Fonction affectation\n");
@@ -583,7 +649,7 @@ int expr(){
         return 0;
     if(suite_terme()==0)
         return 0;
-    if((unilex==ptvirg||unilex==virg) && SOM_PILOP!=0) {
+    if((unilex==ptvirg||unilex==virg||strcmp(CHAINE, "ALORS")==0||strcmp(CHAINE, "FAIRE")==0) && SOM_PILOP!=0) {
         for(int i=SOM_PILOP-1; i>=0; i--) {
             addPCode(PILOP[i]);
             free(PILOP[i]);
@@ -596,7 +662,7 @@ int expr(){
 
 int suite_terme(){
     //printf("Fonction suite_terme\n");
-    if(unilex==ptvirg||unilex==parfer||unilex==virg) {
+    if(unilex==ptvirg||unilex==parfer||unilex==virg || strcmp(CHAINE, "FAIRE")==0 || strcmp(CHAINE, "ALORS")==0) {
         return 1;
     }
     if(op_bin()==0)
@@ -735,16 +801,22 @@ void initialiser(TableIdentificateurs* tableIdentificateurs){
     SOM_PILEX=-1;
     tailleMaxPilex = 0;
     CO = 0;
+    tailleMaxMemMove = 0;
     VAL_DE_CONST_CHAINE = malloc(sizeof(char*));
     CHAINE = malloc(sizeof(char)*LONG_MAX_CHAINE);
     sprintf(CHAINE, "%s", ".....");
-    sprintf(TABLE_MOTS_RESERVES[0], "%s", "CONST");
-    sprintf(TABLE_MOTS_RESERVES[1], "%s", "DEBUT");
-    sprintf(TABLE_MOTS_RESERVES[2], "%s", "ECRIRE");
-    sprintf(TABLE_MOTS_RESERVES[3], "%s", "FIN");
-    sprintf(TABLE_MOTS_RESERVES[4], "%s", "LIRE");
-    sprintf(TABLE_MOTS_RESERVES[5], "%s", "PROGRAMME");
-    sprintf(TABLE_MOTS_RESERVES[6], "%s", "VAR");
+    sprintf(TABLE_MOTS_RESERVES[0], "%s", "ALORS");
+    sprintf(TABLE_MOTS_RESERVES[1], "%s", "CONST");
+    sprintf(TABLE_MOTS_RESERVES[2], "%s", "DEBUT");
+    sprintf(TABLE_MOTS_RESERVES[3], "%s", "ECRIRE");
+    sprintf(TABLE_MOTS_RESERVES[4], "%s", "FAIRE");
+    sprintf(TABLE_MOTS_RESERVES[5], "%s", "FIN");
+    sprintf(TABLE_MOTS_RESERVES[6], "%s", "LIRE");
+    sprintf(TABLE_MOTS_RESERVES[7], "%s", "PROGRAMME");
+    sprintf(TABLE_MOTS_RESERVES[8], "%s", "SI");
+    sprintf(TABLE_MOTS_RESERVES[9], "%s", "SINON");
+    sprintf(TABLE_MOTS_RESERVES[10], "%s", "TANTQUE");
+    sprintf(TABLE_MOTS_RESERVES[11], "%s", "VAR");
     file = fopen(SOURCE, "r");
     tableIdent = tableIdentificateurs;
     init(tableIdent);
@@ -783,12 +855,12 @@ void anasynt(){
     }
 }
 
-void analyseur_syntaxique(char* source, TableIdentificateurs* tableIdentificateurs){
+void analyseur_syntaxique(char* source){
     FILE* fichier = NULL;
     SOURCE = malloc(sizeof(char)*40);
     SOURCE = strcpy(SOURCE, source);
     CHAINE = malloc(sizeof(CHAINE));
-    initialiser(tableIdentificateurs);
+    initialiser(tableIdent);
     sprintf(CHAINE, "%s", "");
     anasynt();
     /*printf("Nb de const chaine : %d\n", NB_CONST_CHAINE);
@@ -822,6 +894,19 @@ void addPilop(char* chaine){
     SOM_PILOP++;
 }
 
+void addTabMemMove(int numMove){
+    tabMemMove = realloc(tabMemMove, sizeof(int*)*(tailleMaxMemMove+1));
+    tabMemMove[tailleMaxMemMove] = numMove;
+    tailleMaxMemMove++;
+}
+
+int removeTabMemMove(){
+    int numMove = tabMemMove[tailleMaxMemMove-1];
+    tabMemMove = realloc(tabMemMove, sizeof(int*)*(tailleMaxMemMove-1));
+    tailleMaxMemMove--;
+    return numMove;
+}
+
 void addPCodeInt(int nb){
     char* string = malloc(sizeof(nb));
     sprintf(string, "%d", nb);
@@ -829,6 +914,7 @@ void addPCodeInt(int nb){
     P_CODE[CO] = malloc(sizeof(char)*(strlen(string)+1));
     P_CODE[CO] = strcpy(P_CODE[CO], string);
     CO++;
+    free(string);
 }
 
 void creer_fichier_code(){
@@ -839,7 +925,7 @@ void creer_fichier_code(){
     int testBool = 0;
     for(int i=0; i<CO; i++)
     {
-        if(strcmp(P_CODE[i], "EMPI")==0)
+        if(strcmp(P_CODE[i], "EMPI")==0 || strcmp(P_CODE[i], "ALSN")==0||strcmp(P_CODE[i], "ALLE")==0)
             fprintf(fileMachine, "%s ", P_CODE[i]);
         else if(strcmp(P_CODE[i], "ECRC")==0)
         {
@@ -923,6 +1009,16 @@ void interpreter(){
         else if(strcmp(P_CODE[CO], "CONT")==0){
             PILEX[SOM_PILEX] = MEMVAR[PILEX[SOM_PILEX]];
             CO++;
+        }
+        else if(strcmp(P_CODE[CO], "ALLE")==0){
+            CO=(int)atoi(P_CODE[CO+1]);
+        }
+        else if(strcmp(P_CODE[CO], "ALSN")==0){
+            if(PILEX[SOM_PILEX]==0)
+                CO = (int)atoi(P_CODE[CO+1]);
+            else
+                CO+=2;
+            SOM_PILEX--;
         }
     }
     printf("\n");

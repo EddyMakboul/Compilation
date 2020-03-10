@@ -4,7 +4,7 @@
 #include "TableIdentificateurs.h"
 #define LONG_MAX_IDENT 20
 #define LONG_MAX_CHAINE 50
-#define NB_MOTS_RESERVES 7
+#define NB_MOTS_RESERVES 12
 
 // Variables globales
 char * SOURCE;
@@ -32,6 +32,8 @@ int tailleMaxPilex;
 int SOM_PILEX;
 char** PILOP;
 int SOM_PILOP;
+int* tabMemMove;
+int tailleMaxMemMove;
 
 typedef enum T_UNILEX {
     motcle,
@@ -80,6 +82,9 @@ int decl_const();
 int decl_var();
 int bloc();
 int instruction();
+int inst_non_cond();
+int inst_repe();
+int inst_cond();
 int affectation();
 int lecture();
 int ecriture();
@@ -89,7 +94,7 @@ int suite_terme();
 int terme();
 int op_bin();
 void anasynt();
-void analyseur_syntaxique(char* source, TableIdentificateurs* tableIdentificateurs);
+void analyseur_syntaxique(char* source);
 
 /* ----------------- Analyseur sémantique --------- */
 void addConstChaine(char* chaine);
@@ -99,6 +104,8 @@ void addPCode(char* chaine);
 void addPCodeInt(int nb);
 void addPilop(char* chaine);
 void creer_fichier_code();
+void addTabMemMove(int numMove);
+int removeTabMemMove();
 
 void interpreter();
 

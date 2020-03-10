@@ -1,7 +1,5 @@
 #include "Identificateurs.h"
 #include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 void setNameIdent(char* valeur, Identificateurs i){
     //i.nomIdent = malloc(sizeof(char)*strlen(valeur)+1);
