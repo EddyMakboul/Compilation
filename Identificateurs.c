@@ -14,3 +14,11 @@ void setTypeIdent(char* type, Identificateurs i){
     //i.type = malloc(sizeof(char)*strlen(type)+1);
     i.type = strcpy(i.type, type);
 }
+
+int containsArgs(char* nameArgs, Identificateurs identifi){
+    for(int i=0; i<identifi.nbArg; i++){
+        if(strcmp(nameArgs, identifi.nameArgs[i])==0)
+            return i;
+    }
+    return -1;
+}

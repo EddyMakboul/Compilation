@@ -1,7 +1,7 @@
 PROGRAMME exemple;
 var i, j;
 DEBUT
-    i:=9;
+    i:=8;
     tantque i faire
     debut
         j:=9;
@@ -13,7 +13,6 @@ DEBUT
         fin
         ecrire(i, j);
         ecrire();
-        i:=i-1;
         si i-1 alors
         debut
         fin
@@ -29,7 +28,7 @@ DEBUT
             ecrire(i-1, j);
             ecrire();
         fin
+        i:=i-1;
     fin
-    ecrire(i, j);
     ecrire();
 FIN.

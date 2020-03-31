@@ -38,6 +38,9 @@ void erreur(int numErreur){
         case 9:
             printf("Erreur d'execution : division par zero.\n");
             break;
+        case 10:
+            printf("Erreur arguments ne peuvent affectés, ligne: %d.\n", NUM_LIGNE);
+            break;
         default:
             break;
     }
@@ -344,6 +347,13 @@ int prog(){
     if(strcmp(CHAINE, "VAR")==0)
         if(decl_var()==0)
             return 0;
+
+    testFct = 1;
+    if(strcmp(CHAINE, "FONCTION")==0)
+        if(decl_fct()==0)
+            return 0;
+    testFct = 0;
+    CO=0;
     if(bloc()==0)
         return 0;
     addPCode("STOP");
@@ -391,7 +401,7 @@ int decl_const(){
             }
         }
     }
-    unilex = analex(file);
+    unilex = analex();
     return 1;
 }
 
@@ -419,7 +429,66 @@ int decl_var(){
             }
         }
     }
-    unilex = analex(file);
+    unilex = analex();
+    return 1;
+}
+
+int decl_fct(){
+    if(strcmp(CHAINE, "FONCTION")!=0)
+        return 0;
+    unilex=analex();
+    if(unilex!=ident)
+        return 0;
+    nameFonction = realloc(nameFonction, sizeof(nameFonction)*strlen(CHAINE));
+    Identificateurs identifi;
+    identifi.nomIdent = malloc(sizeof(identifi.nomIdent)*strlen(CHAINE));
+    sprintf(identifi.nomIdent, "%s", CHAINE);
+    sprintf(nameFonction, "%s", CHAINE);
+    identifi.type = malloc(sizeof(identifi.type)*strlen("fct"));
+    sprintf(identifi.type, "%s", "fct");
+    identifi.nbArg=0;
+    identifi.start = CO;
+    unilex = analex();
+    if(unilex!=parouv)
+        return 0;
+    unilex = analex();
+    while(unilex!=parfer)
+    {
+        if(unilex!=ident)
+            return 0;
+        if(identifi.nbArg==0)
+            identifi.nameArgs = malloc(sizeof(identifi.nameArgs));
+        else
+            identifi.nameArgs = realloc(identifi.nameArgs, sizeof(identifi.nameArgs)*(identifi.nbArg+1));
+        identifi.nameArgs[identifi.nbArg] = malloc(sizeof(identifi.nameArgs[identifi.nbArg])*strlen(CHAINE));
+        identifi.nameArgs[identifi.nbArg] = strcpy(identifi.nameArgs[identifi.nbArg], CHAINE);
+        identifi.nbArg+=1;
+        unilex = analex();
+        if(unilex==virg)
+        {
+            unilex = analex();
+            if(unilex==parfer)
+                return 0;
+        } else
+            if(unilex!=parfer)
+                return 0;
+    }
+    identifi.args = malloc(sizeof(identifi.args)*identifi.nbArg);
+    unilex = analex();
+    if(unilex != deuxpts)
+        return 0;
+    unilex = analex();
+    if(strcmp(CHAINE, "ENTIER")!=0)
+        return 0;
+    unilex = analex();
+    addIdentificateurs(tableIdent, identifi);
+    if(bloc()==0)
+        return 0;
+    nameFonction = realloc(nameFonction, sizeof(nameFonction)*strlen(identifi.nomIdent));
+    sprintf(nameFonction, "%s", identifi.nomIdent);
+    tableIdent->tableIdentificateurs[contains(tableIdent, nameFonction)].end = CO-1;
+    if(strcmp(CHAINE, "FONCTION")==0)
+        return decl_fct();
     return 1;
 }
 
@@ -454,11 +523,93 @@ int inst_non_cond(){
         return ecriture()==1;
     if(strcmp(CHAINE, "DEBUT") == 0)
         return bloc()==1;
-    if(unilex==ident)
-        return affectation()==1;
+    if(unilex==ident) {
+        if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "fct")==0) {
+            int verifPlus = verifFct();
+            if(verifPtVirg==0) {
+                if (unilex != ptvirg)
+                    return 0;
+                unilex = analex();
+            }
+            verifPtVirg=0;
+            return verifPlus;
+        }
+        else
+            return affectation() == 1;
+    }
     if(strcmp(CHAINE, "TANTQUE")==0)
         return inst_repe()==1;
     return 0;
+}
+
+int verifFct(){
+    Identificateurs identifi = tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)];
+    int value = 0;
+    if(strcmp(identifi.nomIdent, nameFonction)==0)
+        value = 1;
+    nameFonction = malloc(sizeof(nameFonction)*strlen(CHAINE));
+    sprintf(nameFonction, "%s", CHAINE);
+    if(strcmp(identifi.type, "fct")!=0)
+        return 0;
+    unilex = analex();
+    if(unilex!=parouv) {
+        if(unilex==aff && testFct==0)
+        {
+            return 0;
+        } else if(unilex == aff){
+            if(value==1)
+            {
+                tableIdent->tableIdentificateurs[contains(tableIdent, nameFonction)].hasReturn =1;
+                unilex = analex();
+                if(expr()==0)
+                    return 0;
+                if(unilex!=ptvirg)
+                    return 0;
+                if(testFct==1)
+                {
+                    addPCodeFonction("FINFONCTION");
+                } else
+                    addPCode("FINFONCTION");
+                unilex = analex();
+                verifPtVirg = 1;
+                return 1;
+            }
+        }
+        return 0;
+    }
+    unilex = analex();
+    if(identifi.nbArg!=0)
+    {
+        for(int i=0;i<identifi.nbArg;i++)
+        {
+            if(unilex!=ent && unilex!=ident)
+                return 0;
+            if(unilex==ident){
+                if(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].typc!=0)
+                    return 0;
+                tableIdent->tableIdentificateurs[contains(tableIdent, nameFonction)].args[i] =
+                        tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent;
+            } else
+                tableIdent->tableIdentificateurs[contains(tableIdent, nameFonction)].args[i] = NOMBRE;
+            unilex = analex();
+            if(i<identifi.nbArg-1) {
+                if (unilex != virg)
+                    return 0;
+                unilex = analex();
+            }else{
+                if(unilex!=parfer)
+                    return 0;
+            }
+        }
+    } else
+    {
+        if(unilex!=parfer)
+            return 0;
+    }
+    unilex = analex();
+    addFonction(identifi.nomIdent);
+    return 1;
+
 }
 
 int inst_repe(){
@@ -468,8 +619,14 @@ int inst_repe(){
     addTabMemMove(CO);
     if(expr()==0)
         return 0;
-    addPCode("ALSN");
-    addPCode("");
+    if(testFct==1) {
+        addPCodeFonction("ALSN");
+        addPCodeFonction("");
+    }
+    else {
+        addPCode("ALSN");
+        addPCode("");
+    }
     addTabMemMove(CO-1);
     if(strcmp(CHAINE, "FAIRE")!=0)
         return 0;
@@ -478,10 +635,19 @@ int inst_repe(){
         return 0;
     int num = removeTabMemMove();
     int num2 = removeTabMemMove();
-    P_CODE[num] = malloc(sizeof(CO));
-    sprintf(P_CODE[num], "%d", CO+2);
-    addPCode("ALLE");
-    addPCodeInt(num2);
+    if(testFct==1)
+    {
+        P_CODE_FONCTION[num] = malloc(sizeof(CO));
+        sprintf(P_CODE_FONCTION[num], "%d", CO+2);
+        addPCodeFonction("ALLE");
+        addPCodeIntFonction(num2);
+    }
+    else {
+        P_CODE[num] = malloc(sizeof(int));
+        sprintf(P_CODE[num], "%d", CO + 2);
+        addPCode("ALLE");
+        addPCodeInt(num2);
+    }
     return 1;
 }
 
@@ -491,8 +657,14 @@ int inst_cond(){
     unilex = analex();
     if(expr()==0)
         return 0;
-    addPCode("ALSN");
-    addPCode("");
+    if(testFct==1){
+        addPCodeFonction("ALSN");
+        addPCodeFonction("");
+    }
+    else{
+        addPCode("ALSN");
+        addPCode("");
+    }
     addTabMemMove(CO-1);
     if(strcmp(CHAINE, "ALORS")!=0)
         return 0;
@@ -500,18 +672,35 @@ int inst_cond(){
     if(instruction()==0)
         return 0;
     int num = removeTabMemMove();
-    P_CODE[num] = malloc(sizeof(CO));
-    sprintf(P_CODE[num], "%d", CO+2);
+    if(testFct==1)
+    {
+        P_CODE_FONCTION[num] = malloc(sizeof(CO));
+        sprintf(P_CODE_FONCTION[num], "%d", CO+2);
+    }else{
+        P_CODE[num] = malloc(sizeof(CO));
+        sprintf(P_CODE[num], "%d", CO+2);
+    }
     if(strcmp(CHAINE, "SINON")==0) {
-        addPCode("ALLE");
-        addPCode("");
+        if(testFct==1){
+            addPCodeFonction("ALLE");
+            addPCodeFonction("");
+        }
+        else {
+            addPCode("ALLE");
+            addPCode("");
+        }
         addTabMemMove(CO-1);
         unilex = analex();
         if(instruction()==0)
             return 0;
         num = removeTabMemMove();
-        P_CODE[num] = malloc(sizeof(CO));
-        sprintf(P_CODE[num], "%d", CO);
+        if(testFct==1){
+            P_CODE_FONCTION[num] = malloc(sizeof(CO));
+            sprintf(P_CODE_FONCTION[num], "%d", CO);
+        }else {
+            P_CODE[num] = malloc(sizeof(CO));
+            sprintf(P_CODE[num], "%d", CO);
+        }
     }
 
     return 1;
@@ -525,10 +714,28 @@ int affectation(){
         return 0;
     if(contains(tableIdent, CHAINE)==-1)
         erreur(5);
-    if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "VAR")!=0)
+    if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "VAR")!=0 && testFct==0)
         erreur(6);
-    addPCode("EMPI");
-    addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+    else if((strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "VAR")!=0 ||
+    strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "fct")!=0) && testFct==1){
+        erreur(6);
+    }
+    if(testFct==1)
+    {
+        if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "fct")!=0)
+        {
+            addPCodeFonction("EMPI");
+            addPCodeIntFonction(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+        }
+        else{
+            addPCodeFonction("RETURN");
+            tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].hasReturn = 1;
+        }
+    }
+    else {
+        addPCode("EMPI");
+        addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+    }
     unilex = analex();
     if(unilex!=aff)
         return 0;
@@ -537,7 +744,10 @@ int affectation(){
         return 0;
     if(unilex!=ptvirg)
         return 0;
-    addPCode("AFFE");
+    if(testFct == 1)
+        addPCodeFonction("AFFE");
+    else
+        addPCode("AFFE");
     unilex = analex();
     varBool = 0;
     strBool = 0;
@@ -561,11 +771,18 @@ int lecture(){
         if(contains(tableIdent, CHAINE)==-1)
             erreur(5);
         if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "VAR")!=0)
-            erreur(6);
-        addPCode("EMPI");
-        int length = 0;
-        addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
-        addPCode("LIRE");
+            erreur(10);
+        if(testFct==1){
+            if(containsArgs(CHAINE, tableIdent->tableIdentificateurs[contains(tableIdent, nameFonction)])==0)
+                erreur(6);
+            addPCodeFonction("EMPI");
+            addPCodeIntFonction(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+            addPCodeFonction("LIRE");
+        }else {
+            addPCode("EMPI");
+            addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+            addPCode("LIRE");
+        }
         unilex = analex();
         if(unilex!=parfer){
             if(unilex!=virg)
@@ -575,10 +792,10 @@ int lecture(){
                 return 0;
         }
     }
-    unilex = analex(file);
+    unilex = analex();
     if(unilex!=ptvirg)
         return 0;
-    unilex = analex(file);
+    unilex = analex();
     return 1;
 
 }
@@ -591,8 +808,12 @@ int ecriture(){
     if(unilex!=parouv)
         return 0;
     unilex = analex();
-    if(unilex==parfer)
-        addPCode("ECRL");
+    if(unilex==parfer) {
+        if(testFct==1)
+            addPCodeFonction("ECRL");
+        else
+            addPCode("ECRL");
+    }
     while(unilex!=parfer)
     {
         if(ecr_exp()==0)
@@ -606,10 +827,10 @@ int ecriture(){
                 return 0;
         }
     }
-    unilex=analex(file);
+    unilex=analex();
     if(unilex!=ptvirg)
         return 0;
-    unilex=analex(file);
+    unilex=analex();
     varBool = 0;
     strBool = 0;
     return 1;
@@ -622,22 +843,37 @@ int ecr_exp(){
         if(expr()!=0) {
             if(SOM_PILOP!=0)
             {
-                addPCode(PILOP[SOM_PILOP-1]);
+                if(testFct==1)
+                    addPCodeFonction(PILOP[SOM_PILOP-1]);
+                else
+                    addPCode(PILOP[SOM_PILOP-1]);
                 free(PILOP[SOM_PILOP-1]);
                 PILOP = realloc(PILOP, sizeof(char *) * (SOM_PILOP-1));
                 SOM_PILOP--;
             }
-            if(verifExpr == 1)
-                addPCode("ECRE");
+            if(verifExpr == 1) {
+                if(testFct==1)
+                    addPCodeFonction("ECRE");
+                else
+                    addPCode("ECRE");
+            }
             verifExpr = 0;
             return 1;
         }
         else
             return 0;
     } else {
-        addPCode("ECRC");
-        addPCode(CHAINE);
-        addPCode("FINC");
+        if(testFct==1)
+        {
+            addPCodeFonction("ECRC");
+            addPCodeFonction(CHAINE);
+            addPCodeFonction("FINC");
+        }
+        else {
+            addPCode("ECRC");
+            addPCode(CHAINE);
+            addPCode("FINC");
+        }
         unilex=analex();
         return 1;
     }
@@ -647,11 +883,15 @@ int expr(){
     //printf("Fonction expr\n");
     if(terme() == 0)
         return 0;
-    if(suite_terme()==0)
+    if(suite_terme()==0) {
         return 0;
+    }
     if((unilex==ptvirg||unilex==virg||strcmp(CHAINE, "ALORS")==0||strcmp(CHAINE, "FAIRE")==0) && SOM_PILOP!=0) {
         for(int i=SOM_PILOP-1; i>=0; i--) {
-            addPCode(PILOP[i]);
+            if(testFct==1)
+                addPCodeFonction(PILOP[i]);
+            else
+                addPCode(PILOP[i]);
             free(PILOP[i]);
             PILOP = realloc(PILOP, sizeof(char *) * (i));
             SOM_PILOP--;
@@ -678,41 +918,86 @@ int terme(){
     if(unilex==ent||unilex==ident) {
         if(unilex==ent)
         {
-            addPCode("EMPI");
-            addPCodeInt(NOMBRE);
+            if(testFct==1){
+                addPCodeFonction("EMPI");
+                addPCodeIntFonction(NOMBRE);
+            }
+            else {
+                addPCode("EMPI");
+                addPCodeInt(NOMBRE);
+            }
             verifExpr = 1;
         }
         if(unilex==ident)
         {
-            if(contains(tableIdent, CHAINE)==-1)
+            if(contains(tableIdent, CHAINE)==-1&&testFct!=1) {
                 erreur(5);
-            if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "CONST")==0) {
-                if (tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].typc == 1) {
-                    if(varBool == 1 || strBool == 1)
-                        erreur(8);
-                    else
-                        strBool = 1;
-                }
             }
-            if(strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "CONST")==0)
+            if(testFct==1 && contains(tableIdent, CHAINE)==-1 && containsArgs(CHAINE, tableIdent->tableIdentificateurs[contains(tableIdent, nameFonction)])==-1) {
+                erreur(5);
+            }
+            if(testFct==1 && contains(tableIdent, CHAINE)==-1)
             {
-                if(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].typc==1) {
-                    addPCode("ECRC");
-                    addPCode(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valch);
-                    addPCode("FINC");
-                    verifExpr = 0;
-                } else
-                {
-                    addPCode("EMPI");
-                    addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
-                    verifExpr = 1;
-                }
+                if(containsArgs(CHAINE, tableIdent->tableIdentificateurs[contains(tableIdent, nameFonction)])==-1)
+                    erreur(5);
+                addPCodeFonction("EMPI");
+                char* strVal = malloc(sizeof(strVal)*(strlen(nameFonction)+2));
+                sprintf(strVal, "@ %s %d", nameFonction, containsArgs(CHAINE, tableIdent->tableIdentificateurs[contains(tableIdent, nameFonction)]));
+                addPCodeFonction(strVal);
+                verifExpr=1;
             }
             else {
-                addPCode("EMPI");
-                addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
-                addPCode("CONT");
-                verifExpr = 1;
+                if (strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "CONST") == 0) {
+                    if (tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].typc == 1) {
+                        if (varBool == 1 || strBool == 1)
+                            erreur(8);
+                        else
+                            strBool = 1;
+                    }
+                }
+                if (strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "CONST") == 0) {
+                    if (tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].typc == 1) {
+                        if (testFct == 1) {
+                            addPCodeFonction("ECRC");
+                            addPCodeFonction(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valch);
+                            addPCodeFonction("FINC");
+                        } else {
+                            addPCode("ECRC");
+                            addPCode(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valch);
+                            addPCode("FINC");
+                        }
+                        verifExpr = 0;
+                    } else {
+                        if (testFct == 1) {
+                            addPCodeFonction("EMPI");
+                            addPCodeIntFonction(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+                        } else {
+                            addPCode("EMPI");
+                            addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+                        }
+                        verifExpr = 1;
+                    }
+                } else if (strcmp(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].type, "fct") == 0) {
+                    if (verifFct() == 0)
+                        return 0;
+                    if (testFct == 1) {
+                        addPCodeFonction("RETURN");
+                    } else {
+                        addPCode("RETURN");
+                    }
+                    return 1;
+                } else {
+                    if (testFct == 1) {
+                        addPCodeFonction("EMPI");
+                        addPCodeIntFonction(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+                        addPCodeFonction("CONT");
+                    } else {
+                        addPCode("EMPI");
+                        addPCodeInt(tableIdent->tableIdentificateurs[contains(tableIdent, CHAINE)].valent);
+                        addPCode("CONT");
+                    }
+                    verifExpr = 1;
+                }
             }
             varBool = 1;
         }
@@ -731,8 +1016,10 @@ int terme(){
         unilex=analex();
         for(int i=0; i<tabPar[nbPar-1]; i++)
         {
-            printf("test\n");
-            addPCode(PILOP[SOM_PILOP-1]);
+            if(testFct==1)
+                addPCodeFonction(PILOP[SOM_PILOP-1]);
+            else
+                addPCode(PILOP[SOM_PILOP-1]);
             free(PILOP[SOM_PILOP-1]);
             PILOP = realloc(PILOP, sizeof(char*)*(SOM_PILOP-1));
             SOM_PILOP--;
@@ -746,7 +1033,10 @@ int terme(){
         {
             unilex = analex();
             int value = terme();
-            addPCode("MOIN");
+            if(testFct==1)
+                addPCodeFonction("MOIN");
+            else
+                addPCode("MOIN");
             return value;
         }
         else return 0;
@@ -796,6 +1086,7 @@ T_UNILEX analex(){
 void initialiser(TableIdentificateurs* tableIdentificateurs){
     NUM_LIGNE = 1;
     nbPar=0;
+    testFct = 0;
     NB_CONST_CHAINE = 0;
     DERNIERE_ADRESSE_VAR_GLOB = 0;
     SOM_PILEX=-1;
@@ -809,14 +1100,16 @@ void initialiser(TableIdentificateurs* tableIdentificateurs){
     sprintf(TABLE_MOTS_RESERVES[1], "%s", "CONST");
     sprintf(TABLE_MOTS_RESERVES[2], "%s", "DEBUT");
     sprintf(TABLE_MOTS_RESERVES[3], "%s", "ECRIRE");
-    sprintf(TABLE_MOTS_RESERVES[4], "%s", "FAIRE");
-    sprintf(TABLE_MOTS_RESERVES[5], "%s", "FIN");
-    sprintf(TABLE_MOTS_RESERVES[6], "%s", "LIRE");
-    sprintf(TABLE_MOTS_RESERVES[7], "%s", "PROGRAMME");
-    sprintf(TABLE_MOTS_RESERVES[8], "%s", "SI");
-    sprintf(TABLE_MOTS_RESERVES[9], "%s", "SINON");
-    sprintf(TABLE_MOTS_RESERVES[10], "%s", "TANTQUE");
-    sprintf(TABLE_MOTS_RESERVES[11], "%s", "VAR");
+    sprintf(TABLE_MOTS_RESERVES[4], "%s", "ENTIER");
+    sprintf(TABLE_MOTS_RESERVES[5], "%s", "FAIRE");
+    sprintf(TABLE_MOTS_RESERVES[6], "%s", "FIN");
+    sprintf(TABLE_MOTS_RESERVES[7], "%s", "FONCTION");
+    sprintf(TABLE_MOTS_RESERVES[8], "%s", "LIRE");
+    sprintf(TABLE_MOTS_RESERVES[9], "%s", "PROGRAMME");
+    sprintf(TABLE_MOTS_RESERVES[10], "%s", "SI");
+    sprintf(TABLE_MOTS_RESERVES[11], "%s", "SINON");
+    sprintf(TABLE_MOTS_RESERVES[12], "%s", "TANTQUE");
+    sprintf(TABLE_MOTS_RESERVES[13], "%s", "VAR");
     file = fopen(SOURCE, "r");
     tableIdent = tableIdentificateurs;
     init(tableIdent);
@@ -887,6 +1180,13 @@ void addPCode(char* chaine){
     CO++;
 }
 
+void addPCodeFonction(char* chaine){
+    P_CODE_FONCTION = realloc(P_CODE_FONCTION, sizeof(char*)*(CO+1));
+    P_CODE_FONCTION[CO] = malloc(sizeof(char)*strlen(chaine)+1);
+    P_CODE_FONCTION[CO] = strcpy(P_CODE_FONCTION[CO], chaine);
+    CO++;
+}
+
 void addPilop(char* chaine){
     PILOP = realloc(PILOP, sizeof(char*)*(SOM_PILOP+1));
     PILOP[SOM_PILOP] = malloc(sizeof(char)*(strlen(chaine)+1));
@@ -913,6 +1213,16 @@ void addPCodeInt(int nb){
     P_CODE = realloc(P_CODE, sizeof(char*)*(CO+1));
     P_CODE[CO] = malloc(sizeof(char)*(strlen(string)+1));
     P_CODE[CO] = strcpy(P_CODE[CO], string);
+    CO++;
+    free(string);
+}
+
+void addPCodeIntFonction(int nb){
+    char* string = malloc(sizeof(nb));
+    sprintf(string, "%d", nb);
+    P_CODE_FONCTION = realloc(P_CODE_FONCTION, sizeof(P_CODE_FONCTION)*(CO+1));
+    P_CODE_FONCTION[CO] = malloc(sizeof(P_CODE_FONCTION[CO])*(strlen(string)+1));
+    P_CODE_FONCTION[CO] = strcpy(P_CODE_FONCTION[CO], string);
     CO++;
     free(string);
 }
@@ -1019,7 +1329,55 @@ void interpreter(){
             else
                 CO+=2;
             SOM_PILEX--;
+        }else if(strcmp(P_CODE[CO], "FINFONCTION")==0){
+            if(strcmp(P_CODE[CO+1], "RETURN")!=0){
+                PILEX = realloc(PILEX, sizeof(int)*--tailleMaxPilex);
+                CO+=1;
+            } else
+                CO+=2;
+        }
+        else if(strcmp(P_CODE[CO], "RETURN")==0){
+            if(strcmp(P_CODE[CO+2],"EMPIF")==0)
+            {
+                SOM_PILEX++;
+                if(SOM_PILEX>=tailleMaxPilex){
+                    PILEX = realloc(PILEX, sizeof(int)*++tailleMaxPilex);
+                }
+                PILEX[SOM_PILEX] = (int)strtol(P_CODE[CO+1], NULL, 10);
+                CO+=3;
+            }
+            CO+=2;
+        }else if(strcmp(P_CODE[CO], "ADDFCT")==0){
+            nameFonction = strcpy(nameFonction, P_CODE[CO+1]);
+            CO+=2;
         }
     }
     printf("\n");
+}
+
+void addFonction(char* string){
+    Identificateurs identifi = tableIdent->tableIdentificateurs[contains(tableIdent, string)];
+    for(int i=identifi.start;i<=identifi.end;i++) {
+        if(P_CODE_FONCTION[i][0]=='@') {
+            char* str = malloc(sizeof(str)*strlen(P_CODE_FONCTION[i])-1);
+            char* strToken = strtok(P_CODE_FONCTION[i], " ");
+            if(strcmp(strToken, "@")==0)
+                strToken = strtok(NULL, " ");
+            if(contains(tableIdent, strToken)==0)
+                erreur(11);
+            sprintf(nameFonction, "%s", strToken);
+            strToken = strtok(NULL, " ");
+            sprintf(str, "%d", tableIdent->tableIdentificateurs[contains(tableIdent, nameFonction)].args[
+                    strtol(strToken, NULL, 10)]);
+            if(testFct==1)
+                addPCodeFonction(str);
+            else
+                addPCode(str);
+        }else {
+            if(testFct==1)
+                addPCodeFonction(P_CODE_FONCTION[i]);
+            else
+                addPCode(P_CODE_FONCTION[i]);
+        }
+    }
 }
